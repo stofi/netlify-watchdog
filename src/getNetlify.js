@@ -10,21 +10,34 @@ const simplifySite = ({
   name,
   url,
   state,
-  published_deploy: { created_at, updated_at, state: deployState },
+  deploy,
 }) => ({
   name,
   url,
   state,
-  deploy: {
-    created_at: new Date(created_at),
-    updated_at: new Date(updated_at),
-    deployState,
-  },
+  deploy,
 })
 
 const getNetlify = async () => {
   const sites = await listNetlifySites()
-  const simpleSites = sites.map(simplifySite)
+  const sitesWithBuilds = await sites.reduce(async (prev, curr) => {
+    const all = await prev
+    const deploys = await client.listSiteDeploys({ siteId: curr.site_id })
+    const simpleDeploys = deploys.map(({ state, created_at, updated_at }) => ({
+      state,
+      created_at: new Date(created_at),
+      updated_at: new Date(updated_at),
+    }))
+    const sortedSimpleDeploys = simpleDeploys.sort(
+      ({ created_at: a }, { created_at: b }) => b - a
+    )
+    all.push({
+      ...curr,
+      deploy: sortedSimpleDeploys.length ? sortedSimpleDeploys[0] : null,
+    })
+    return all
+  }, [])
+  const simpleSites = sitesWithBuilds.map(simplifySite)
   const sortedSimpleSites = simpleSites.sort(
     ({ deploy: { created_at: a } }, { deploy: { created_at: b } }) => b - a
   )
