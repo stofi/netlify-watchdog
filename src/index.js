@@ -30,19 +30,25 @@ app.get('/', async function (req, res) {
 })
 
 app.post('/webhook', async function (req, res) {
+  const { body } = req
+
+  const payload = {
+    value1: '',
+  }
+  if (body && body.name && body.state) {
+    payload.value1 = `${body.name}:\n${body.state}`
+  }
   const response = await fetch(iftttWebhookUrl, {
-    method: 'POST', 
+    method: 'POST',
     headers: {
       Accept: 'application/json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      "value1": req.body || "empty",
-    })
-  }).then(res => res.json())
-  .catch(()=>({"message":""}))
+    body: JSON.stringify(payload),
+  })
+    .then((res) => res.json())
+    .catch(() => ({ message: '' }))
   res.send(response)
 })
-
 
 app.listen(8081)
